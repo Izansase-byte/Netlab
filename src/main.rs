@@ -1,6 +1,8 @@
 use std::net::{TcpListener};
+use std::io::Read;
 fn main() {
-    let version = "0.2.0";
+    let mut buffer = [0u8; 1024];
+    let version = "0.2.1";
     let listener = TcpListener::bind("127.0.0.1:8080");
     match listener {
         Ok(listener) => {
@@ -11,6 +13,8 @@ fn main() {
                     Ok(stream) => {
                         let peer_addr = stream.peer_addr();
                         println!("Conexión establecida con {:?}", peer_addr);
+                        let mut stream = stream;
+                       println!(stream.read(&mut buffer))
                     }
                     Err(e) => { println!("Error al aceptar la conexión: {}", e); }}}}
 

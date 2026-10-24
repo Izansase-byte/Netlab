@@ -19,19 +19,23 @@ fn main() {
                         }
 
                         let mut buffer = [0u8; 1024];
-
+                    loop {
                         match stream.read(&mut buffer) {
-                            Ok(0) => {
-                                println!("El cliente ha cerrado la conexión");
-                            }
-                            Ok(bytes_read) => {
-                                let request = String::from_utf8_lossy(&buffer[..bytes_read]);
-                                println!("Datos recibidos: {} bytes", bytes_read);
-                                println!("Solicitud recibida:\n{}", request);
-                            }
-                            Err(e) => {
+                            
+                                Ok(0) => {
+                                    println!("El cliente ha cerrado la conexión");
+                                    break;
+                                }
+                                Ok(bytes_read) => {
+                                    let request = String::from_utf8_lossy(&buffer[..bytes_read]);
+                                    println!("Datos recibidos: {} bytes", bytes_read);
+                                    println!("Solicitud recibida:\n{}", request);
+                              }
+                                Err(e) => {
                                 println!("Error al leer la solicitud: {}", e);
-                            }
+                                break;
+                                
+                            }}
                         }
                     }
                     Err(e) => {

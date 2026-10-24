@@ -9,14 +9,22 @@ fn main() {
             println!("Servidor iniciado en puerto 8080");
             println!("Versión: {}", version);
             for stream in listener.incoming() {
-                match stream {
-                    Ok(stream) => {
+                match stream.read(&mut buffer) {
+                    Ok(bytes_read) => {
                         let peer_addr = stream.peer_addr();
                         println!("Conexión establecida con {:?}", peer_addr);
-                        let mut stream = stream;
-                       println!(stream.read(&mut buffer))
+                        println!("Datos recibidos: {}", bytes_read);
                     }
-                    Err(e) => { println!("Error al aceptar la conexión: {}", e); }}}}
+                    Err(e) => { println!("Error al leer los datos: {}", e); }}}}
+
+
+        
+        Err(e) => {
+            println!("Error al iniciar el servidor: {}", e);
+        }
+
+
+                    Err(e) => { println!("Error al aceptar la conexión: {}", e); }
 
 
         

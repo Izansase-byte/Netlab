@@ -1,8 +1,8 @@
-use std::io::Read;
+use std::io::{Read,Write};
 use std::net::TcpListener;
 
 fn main() {
-    let version = "0.2.1";
+    let version = "0.3";
     let listener = TcpListener::bind("127.0.0.1:8080");
 
     match listener {
@@ -30,6 +30,12 @@ fn main() {
                                     let request = String::from_utf8_lossy(&buffer[..bytes_read]);
                                     println!("Datos recibidos: {} bytes", bytes_read);
                                     println!("Solicitud recibida:\n{}", request);
+                                    match stream.write_all(&buffer[..bytes_read]) {
+                                        Ok(()) => {println!("Respuesta enviada al cliente")}
+                                        Err(e) => {println!("Error al enviar la respuesta: {}", e);
+                                    break;}
+
+                                    }
                               }
                                 Err(e) => {
                                 println!("Error al leer la solicitud: {}", e);

@@ -26,8 +26,6 @@ pub(crate) fn handle_client(
         name.to_string()
     };
 
-    stream.write_all(format!("Bienvenido, {}. Ya puedes escribir.\n", name).as_bytes())?;
-
     // Solo los clientes que han elegido un nombre reciben mensajes del chat.
     let writer = stream.try_clone()?;
     let mut connected = clients.lock().map_err(|_| {
@@ -50,6 +48,9 @@ pub(crate) fn handle_client(
         name: name.clone(),
         stream: writer,
     });
+    drop(connected); // Liberar la lista antes de que broadcast vuelva a bloquearla.
+
+    stream.write_all(format!("Bienvenido, {}. Ya puedes escribir.\n", name).as_bytes())?;
 
     println!("Cliente {} identificado como {}", id, name);
     let notice = format!("{} se ha unido al chat.\n", name);

@@ -10,6 +10,9 @@ A terminal chat app built in Rust to learn about networks,async and encryption.
 - Join and leave notifications
 - A dedicated terminal client
 - TLS connections with server certificate verification.
+- Colorful time-stamped messages ;D
+- Custom Ip and ports from the server part
+- 
 
 ## Requirements
 

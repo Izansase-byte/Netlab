@@ -54,7 +54,9 @@ async fn main() -> io::Result<()> {
     .await
     .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "Tiempo de negociación TLS agotado"))??;
 
-    println!("Conexión TLS verificada con {}", address);
+    println!("\x1b[32mConexión TLS verificada con {}\x1b[0m",
+    address,
+    );
 
     let (reader, mut writer) = tokio::io::split(stream);
     let mut server_messages = BufReader::new(reader).lines();
@@ -79,7 +81,7 @@ async fn main() -> io::Result<()> {
                         println!("\x1b[36m{}\x1b[0m", message);
                     }
                     None => {
-                        println!("Conexión cerrada por el servidor.");
+                        println!("\x1b[33mConexión cerrada por el servidor.\x1b[0m");
                         break;
                     }
                 }

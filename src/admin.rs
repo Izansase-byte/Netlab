@@ -5,13 +5,7 @@ use crate::server::Clients;
 
 pub(crate) fn start(clients: Clients) {
     thread::spawn(move || {
-        println!(
-            "Consola del servidor.\n\
-             Comandos:\n\
-             /users - Mostrar IDs y nombres\n\
-             /say mensaje - Enviar un aviso a todos\n\
-             /kick ID - Expulsar a un usuario"
-        );
+        print_help();
 
         let stdin = io::stdin();
         for line in stdin.lock().lines() {
@@ -62,6 +56,9 @@ pub(crate) fn start(clients: Clients) {
                         Ok(status) => println!("ID {}: {}", id, status),
                         Err(e) => eprintln!("Error al expulsar al usuario: {}", e),
                     }
+                }
+                "/help" => {
+                    print_help()
                 }
                 "" => {}
                 _ => println!("Comando desconocido. Usa /users, /say mensaje o /kick ID."),
@@ -131,3 +128,11 @@ mod tests {
         assert!(clients.lock().unwrap()[1].kick.is_none());
     }
 }
+fn print_help(){
+            println!(
+                "Comandos:\n\
+                /users - Mostrar IDs y nombres\n\
+                /say mensaje - Enviar un aviso a todos\n\
+                /kick ID - Expulsar a un usuario\n\
+                /help - Muestra esta lista\n")
+            }

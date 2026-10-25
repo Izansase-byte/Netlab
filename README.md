@@ -2,6 +2,10 @@
 
 A terminal chat app built in Rust to learn about networks,async and encryption.
 
+## Language
+
+Actually it's only avaible in spanish but I want to make options to change language or another branch in english at least.
+
 ## Features
 
 - Multiple simultaneous users.
@@ -12,7 +16,7 @@ A terminal chat app built in Rust to learn about networks,async and encryption.
 - TLS connections with server certificate verification.
 - Colorful time-stamped messages ;D
 - Custom Ip and ports from the server part
-- 
+- Admin managing terminal
 
 ## Requirements
 
@@ -99,3 +103,54 @@ cargo test --bins
 
 To check the complete app, connect two clients and test messages, duplicate usernames, commands and disconnections.
 
+## Custom IP
+
+To use custom IP or ports you have to use commands when oppening the server;
+
+```bash
+cargo run --bin netlab -- YOUR_IP:YOUR_PORT
+```
+## Releases
+
+1.0 IS HERE!!!
+
+With 1.0 it has a release version in Github with the client and server in separate parts so you can test it 
+[text](https://github.com/Izansase-byte/Netlab/releases)
+### Supported platforms
+
+- MacOS on Apple Silicon (M1 and later).
+
+### Run the client
+
+1. Download and extract the zip.
+2. Open a terminal in the folder.
+3. Make sure the server's public certificate is located at `certs/server-cer.pem`.
+4. Connect using;
+
+```bash
+./client SERVER_IP:SERVER_PORT ("Normally it's the port 8080")
+```
+
+For a server running in the same computer
+
+```bash
+./client 127.0.0.1:8080
+```
+
+Run the client from the extracted folder so it can fin the certificate.
+
+### Run the server
+
+If you downloaded the server binary, generate your certificate and private key using the instrucions in the test certificate section.
+Then run:
+
+```bash
+./Netlab
+```
+
+To use a custom IP addres and port:
+
+```bash
+./Netlab 0.0.0.0:9000
+```
+Share only the public certificate. NEVER share the server's private key

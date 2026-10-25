@@ -1,5 +1,5 @@
-use std::net::UdpSocket;
 use std::io::{self, Write};
+use std::net::UdpSocket;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -14,11 +14,7 @@ pub(crate) struct Client {
 
 pub(crate) type Clients = Arc<Mutex<Vec<Client>>>;
 
-pub(crate) fn broadcast(
-    clients: &Clients,
-    sender_id: usize,
-    message: &str,
-) -> io::Result<()> {
+pub(crate) fn broadcast(clients: &Clients, sender_id: usize, message: &str) -> io::Result<()> {
     let mut connected = clients.lock().map_err(|_| {
         io::Error::new(
             io::ErrorKind::Other,

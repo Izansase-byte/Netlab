@@ -3,7 +3,7 @@ use std::net::TcpStream;
 use std::time::Duration;
 
 use crate::commands::{self, Commands};
-use crate::server::{broadcast, Client, Clients};
+use crate::server::{Client, Clients, broadcast};
 
 pub(crate) fn handle_client(
     id: usize,
@@ -34,10 +34,11 @@ pub(crate) fn handle_client(
             "Lista de clientes bloqueada por un fallo",
         )
     })?;
-    
+
     if connected
-    .iter()
-    .any(|client| client.name.eq_ignore_ascii_case(&name)) {
+        .iter()
+        .any(|client| client.name.eq_ignore_ascii_case(&name))
+    {
         drop(connected);
         stream.write_all(b"Nombre ya en uso. Desconectando...\n")?;
         return Ok(());
@@ -84,8 +85,10 @@ pub(crate) fn handle_client(
                                     "Lista de clientes bloqueada por un fallo",
                                 )
                             })?;
-                            let user_list: Vec<&str> =
-                                connected.iter().map(|client| client.name.as_str()).collect();
+                            let user_list: Vec<&str> = connected
+                                .iter()
+                                .map(|client| client.name.as_str())
+                                .collect();
                             format!("Usuarios conectados: {}\n", user_list.join(", "))
                         };
                         stream.write_all(user_message.as_bytes())?;

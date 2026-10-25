@@ -3,8 +3,8 @@ use std::net::UdpSocket;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
-use tokio_rustls::rustls::ServerConfig;
 use tokio_rustls::TlsAcceptor;
+use tokio_rustls::rustls::ServerConfig;
 
 use crate::client::handle_client;
 
@@ -16,11 +16,7 @@ pub(crate) struct Client {
 
 pub(crate) type Clients = Arc<Mutex<Vec<Client>>>;
 
-pub(crate) fn broadcast(
-    clients: &Clients,
-    sender_id: usize,
-    message: &str,
-) -> io::Result<()> {
+pub(crate) fn broadcast(clients: &Clients, sender_id: usize, message: &str) -> io::Result<()> {
     let mut connected = clients.lock().map_err(|_| {
         io::Error::new(
             io::ErrorKind::Other,
@@ -123,8 +119,16 @@ mod tests {
         let (sender_a, mut receiver_a) = mpsc::unbounded_channel();
         let (sender_b, mut receiver_b) = mpsc::unbounded_channel();
         let clients = Arc::new(Mutex::new(vec![
-            Client { id: 1, name: "Izan".into(), sender: sender_a },
-            Client { id: 2, name: "Ana".into(), sender: sender_b },
+            Client {
+                id: 1,
+                name: "Izan".into(),
+                sender: sender_a,
+            },
+            Client {
+                id: 2,
+                name: "Ana".into(),
+                sender: sender_b,
+            },
         ]));
 
         broadcast(&clients, 1, "Izan: hola\n").unwrap();
@@ -142,8 +146,16 @@ mod tests {
         drop(closed_receiver);
         let (active_sender, mut active_receiver) = mpsc::unbounded_channel();
         let clients = Arc::new(Mutex::new(vec![
-            Client { id: 2, name: "Salido".into(), sender: closed_sender },
-            Client { id: 3, name: "Ana".into(), sender: active_sender },
+            Client {
+                id: 2,
+                name: "Salido".into(),
+                sender: closed_sender,
+            },
+            Client {
+                id: 3,
+                name: "Ana".into(),
+                sender: active_sender,
+            },
         ]));
 
         broadcast(&clients, 1, "hola\n").unwrap();

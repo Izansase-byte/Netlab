@@ -6,8 +6,7 @@ use tokio_rustls::rustls::ServerConfig;
 
 pub(crate) fn server_config() -> io::Result<Arc<ServerConfig>> {
     let mut cert_file = BufReader::new(File::open("certs/server-cert.pem")?);
-    let certificates = rustls_pemfile::certs(&mut cert_file)
-        .collect::<io::Result<Vec<_>>>()?;
+    let certificates = rustls_pemfile::certs(&mut cert_file).collect::<io::Result<Vec<_>>>()?;
 
     if certificates.is_empty() {
         return Err(io::Error::new(

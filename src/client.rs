@@ -78,9 +78,9 @@ pub(crate) async fn handle_client(
     broadcast(clients, id, &format!("{} se ha unido al chat.\n", name))?;
 
     let send = |text: String| {
-        sender.send(text).map_err(|_| {
-            io::Error::new(io::ErrorKind::BrokenPipe, "La cola de envío está cerrada")
-        })
+        sender
+            .send(text)
+            .map_err(|_| io::Error::new(io::ErrorKind::BrokenPipe, "La cola de envío está cerrada"))
     };
 
     let receive = async {
@@ -159,7 +159,9 @@ where
             writer.flush().await
         })
         .await
-        .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "El cliente no recibe los mensajes"))??;
+        .map_err(|_| {
+            io::Error::new(io::ErrorKind::TimedOut, "El cliente no recibe los mensajes")
+        })??;
     }
 
     timeout(Duration::from_secs(10), writer.shutdown())

@@ -1,6 +1,6 @@
 [package]
 name = "Netlab"
-version = "0.7.0"
+version = "0.9.1-a"
 edition = "2024"
 
 [dependencies]

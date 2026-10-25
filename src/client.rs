@@ -30,19 +30,27 @@ pub(crate) fn handle_client(
 
     // Solo los clientes que han elegido un nombre reciben mensajes del chat.
     let writer = stream.try_clone()?;
-    clients
-        .lock()
-        .map_err(|_| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                "Lista de clientes bloqueada por un fallo",
-            )
-        })?
-        .push(Client {
-            id,
-            name: name.clone(),
-            stream: writer,
-        });
+    let mut connected = clients.lock().map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            "Lista de clientes bloqueada por un fallo",
+        )
+    })?;
+    
+    if connected
+    .iter()
+    .any(|client| client.name.eq_ignore_ascii_case(&name)) {
+        drop(connected);
+        stream.write_all(b"Nombre ya en uso. Desconectando...\n")?;
+        return Ok(());
+    }
+
+    connected.push(Client {
+        id,
+        name: name.clone(),
+        stream: writer,
+    });
+
     println!("Cliente {} identificado como {}", id, name);
     let notice = format!("{} se ha unido al chat.\n", name);
     broadcast(clients, id, &notice)?;

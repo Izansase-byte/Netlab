@@ -3,7 +3,7 @@ use std::net::UdpSocket;
 use std::net::{Shutdown, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use tokio::net::TcpListener:
+use tokio::net::TcpListener;
 
 use crate::client::handle_client;
 
@@ -59,23 +59,35 @@ pub async fn run() {
         Err(e) => eprintln!("Error al obtener la IP local: {}", e),
     }
     println!("Versión: {}", env!("CARGO_PKG_VERSION"));
-    for (id, connection) in listener.incoming().enumerate() {
-        let stream = match connection {
-            eprintln!("Conexion desde {}",address)
+    let mut next_id = 0;
 
-            let stream = match stream.into_std() {
-                Ok(stream) => stream,
-                Err(e) => {
-                    eprintln!("Error al converir la conexion: {}", e);
-                    continue;
-                }
-            };
-
-            if let Err(e) = stream.set_nonblocking(false) {
-                eprintln!("Error al configurar la conexion: {}", e):
+    loop {
+        let (stream, address) = match listener.accept().await {
+            Ok(connection) => connection,
+            Err(e) => {
+                eprintln!("Error al aceptar la conexión: {}", e);
                 continue;
             }
         };
+
+        let id = next_id;
+        next_id += 1;
+        println!("Conexión desde {}", address);
+
+        // Puente temporal: la atención al cliente todavía usa E/S bloqueante
+        // en un hilo independiente. TLS sustituirá este paso.
+        let stream = match stream.into_std() {
+            Ok(stream) => stream,
+            Err(e) => {
+                eprintln!("Error al convertir la conexión: {}", e);
+                continue;
+            }
+        };
+
+        if let Err(e) = stream.set_nonblocking(false) {
+            eprintln!("Error al configurar la conexión: {}", e);
+            continue;
+        }
 
         let clients = Arc::clone(&clients);
         thread::spawn(move || {
@@ -97,6 +109,8 @@ pub async fn run() {
                     None
                 }
             };
+            let _ = stream.shutdown(Shutdown::Both);
+
             if let Some(name) = name {
                 let notice = format!("{} se ha desconectado del chat.\n", name);
                 if let Err(e) = broadcast(&clients, id, &notice) {

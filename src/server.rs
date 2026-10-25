@@ -69,12 +69,25 @@ pub fn run() {
             if let Err(e) = handle_client(id, &stream, &clients) {
                 eprintln!("Error del cliente {}: {}", id, e);
             }
-            match clients.lock() {
-                Ok(mut connected) => connected.retain(|client| client.id != id),
-                Err(e) => eprintln!("Error al retirar al cliente {}: {}", id, e),
+            let name = match clients.lock() {
+                Ok(mut connected) => {
+                    let name = connected
+                        .iter()
+                        .find(|client| client.id == id)
+                        .map(|client| client.name.clone());
+                    connected.retain(|client| client.id != id);
+                    name
+                }
+                Err(e) => {
+                    eprintln!("Error al retirar al cliente {}: {}", id, e);
+                    None
+                }
+            };
+            if let Some(name) = name {
+                let notice = format!("{} se ha desconectado del chat.\n", name);
+                if let Err(e) = broadcast(&clients, id, &notice) {
+                    eprintln!("Error al notificar la desconexión de {}: {}", name, e);
+                }
             }
-            let _ = stream.shutdown(Shutdown::Both);
-            println!("Cliente {} desconectado", id);
         });
-    }
-}
+    }}

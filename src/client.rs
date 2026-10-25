@@ -44,6 +44,8 @@ pub(crate) fn handle_client(
             stream: writer,
         });
     println!("Cliente {} identificado como {}", id, name);
+    let notice = format!("{} se ha unido al chat.\n", name);
+    broadcast(clients, id, &notice)?;
 
     let mut message = String::new();
     loop {

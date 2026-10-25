@@ -4,6 +4,7 @@ version = "0.7.0"
 edition = "2024"
 
 [dependencies]
+chrono = "0.4.45"
 rustls-pemfile = "2.2.0"
 tokio = { version = "1.54.1", features = ["net", "io-std", "io-util", "macros", "rt-multi-thread", "sync", "time"] }
 tokio-rustls = "0.26.6"

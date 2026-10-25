@@ -75,7 +75,9 @@ async fn main() -> io::Result<()> {
         tokio::select! {
             incoming = server_messages.next_line() => {
                 match incoming? {
-                    Some(message) => println!("{}", message),
+                    Some(message) => {
+                        println!("\x1b[36m{}\x1b[0m", message);
+                    }
                     None => {
                         println!("Conexión cerrada por el servidor.");
                         break;

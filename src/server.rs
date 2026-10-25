@@ -35,14 +35,22 @@ pub(crate) fn broadcast(clients: &Clients, sender_id: usize, message: &str) -> i
 }
 
 pub async fn run(tls_config: Arc<ServerConfig>) {
+    let address = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "0.0.0.0:8080".to_string());
     let acceptor = TlsAcceptor::from(tls_config);
-    let listener = match TcpListener::bind("0.0.0.0:8080").await {
+    let listener = match TcpListener::bind(&address).await {
         Ok(listener) => listener,
         Err(e) => {
             eprintln!("Error al enlazar el puerto: {}", e);
             return;
         }
     };
+
+    match listener.local_addr() {
+        Ok(address) => println!("Servidor escuchando en {}", address),
+        Err(e) => eprintln!("No se puede consultar la direccion: {}", e),
+    }
 
     let clients: Clients = Arc::new(Mutex::new(Vec::new()));
     let local_ip = (|| -> std::io::Result<std::net::IpAddr> {

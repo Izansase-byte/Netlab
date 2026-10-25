@@ -1,4 +1,5 @@
 use std::io;
+use::chrono::Local;
 
 use tokio::io::{AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
@@ -127,7 +128,8 @@ pub(crate) async fn handle_client(
                     send(response)?;
                 }
                 Commands::Message => {
-                    let outgoing = format!("{}: {}\n", name, text);
+                    let timestamp = Local::now().format("%Y-%m-%d %H: %M: %S");
+                    let outgoing = format!("[{}] {}: {}\n",timestamp, name, text);
                     println!("{}", outgoing.trim_end());
                     broadcast(clients, id, &outgoing)?;
                 }

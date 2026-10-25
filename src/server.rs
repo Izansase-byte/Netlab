@@ -4,8 +4,12 @@ use std::thread;
 
 use crate::client::handle_client;
 
-pub(crate) type Clients = Arc<Mutex<Vec<(usize, TcpStream)>>>;
 
+pub (crate) struct Client {
+    pub(crate) id: usize,
+    pub(crate) name: String,
+    pub(crate) stream: TcpStream,
+}
 pub fn run() {
     let listener = match TcpListener::bind("127.0.0.1:8080") {
         Ok(listener) => listener,
@@ -15,7 +19,7 @@ pub fn run() {
         }
     };
 
-    let clients: Clients = Arc::new(Mutex::new(Vec::new()));
+    let clients: Client = Arc::new(Mutex::new(Vec::new()));
     println!("Servidor de chat iniciado en 127.0.0.1:8080");
     println!("Versión: {}", env!("CARGO_PKG_VERSION"));
 
@@ -28,13 +32,13 @@ pub fn run() {
             }
         };
 
-        let clients = Arc::clone(&clients);
+        let client = Arc::clone(&clients);
         thread::spawn(move || {
             // La limpieza se ejecuta aunque falle el registro o la lectura.
-            if let Err(e) = handle_client(id, &stream, &clients) {
+            if let Err(e) = handle_client(id, &stream, &client) {
                 eprintln!("Error del cliente {}: {}", id, e);
             }
-            match clients.lock() {
+            match client.lock() {
                 Ok(mut connected) => connected.retain(|(other_id, _)| *other_id != id),
                 Err(e) => eprintln!("Error al retirar al cliente {}: {}", id, e),
             }

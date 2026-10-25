@@ -2,10 +2,8 @@ use std::io::{self, BufRead, BufReader, Write};
 use std::net::{Shutdown, TcpStream};
 use std::time::Duration;
 
-use crate::server::Clients;
 use crate::commands::{self, Commands};
-
-
+use crate::server::Clients;
 
 pub(crate) fn handle_client(
     id: usize,
@@ -34,7 +32,12 @@ pub(crate) fn handle_client(
     let writer = stream.try_clone()?;
     clients
         .lock()
-        .map_err(|_| io::Error::new(io::ErrorKind::Other, "Lista de clientes bloqueada por un fallo"))?
+        .map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                "Lista de clientes bloqueada por un fallo",
+            )
+        })?
         .push((id, writer));
     println!("Cliente {} identificado como {}", id, name);
 
@@ -50,7 +53,7 @@ pub(crate) fn handle_client(
                 }
                 match commands::parse_command(text) {
                     Commands::Quit => {
-                        stream.write_all(b"Desconectando...\n")?;  
+                        stream.write_all(b"Desconectando...\n")?;
                         return Ok(());
                     }
                     Commands::Help => {
@@ -59,12 +62,15 @@ pub(crate) fn handle_client(
                         continue;
                     }
                     Commands::Message => {}
-                    }
+                }
                 let outgoing = format!("{}: {}\n", name, text);
                 println!("{}", outgoing.trim_end());
 
                 let mut connected = clients.lock().map_err(|_| {
-                    io::Error::new(io::ErrorKind::Other, "Lista de clientes bloqueada por un fallo")
+                    io::Error::new(
+                        io::ErrorKind::Other,
+                        "Lista de clientes bloqueada por un fallo",
+                    )
                 })?;
 
                 // Cada mensaje completo se envía a todos excepto al remitente.

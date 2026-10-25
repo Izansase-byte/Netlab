@@ -45,6 +45,10 @@ pub(crate) fn handle_client(
                 if text.is_empty() {
                     continue;
                 }
+                if text == "/quit" {
+                    stream.write_all(b"Desconectando...\n")?;
+                    return Ok(());
+                }
                 let outgoing = format!("{}: {}\n", name, text);
                 println!("{}", outgoing.trim_end());
 

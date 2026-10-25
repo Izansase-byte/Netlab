@@ -1,4 +1,4 @@
-use std::io::{Read, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -55,17 +55,16 @@ fn main() {
         let clients = Arc::clone(&clients);
 
         thread::spawn(move || {
-            let mut buffer = [0u8; 1024];
+            let mut reader = BufReader::new(&stream);
+            let mut message = String::new();
 
             loop {
-                match stream.read(&mut buffer) {
+                message.clear();
+
+                match reader.read_line(&mut message) {
                     Ok(0) => break,
-                    Ok(bytes_read) => {
-                        println!(
-                            "Cliente {}: {}",
-                            id,
-                            String::from_utf8_lossy(&buffer[..bytes_read])
-                        );
+                    Ok(_) => {
+                        println!("Cliente {}: {}", id, message.trim_end());
 
                         let mut connected = match clients.lock() {
                             Ok(connected) => connected,
@@ -105,7 +104,7 @@ fn main() {
                 Ok(mut connected) => connected.retain(|(other_id, _)| *other_id != id),
                 Err(e) => eprintln!("Error al retirar al cliente {}: {}", id, e),
             }
-            let _ = stream.shutdown(Shutdown::Both);
+            let _ = reader.get_ref().shutdown(Shutdown::Both);
             println!("Cliente {} desconectado", id);
         });
     }

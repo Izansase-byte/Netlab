@@ -6,7 +6,7 @@ use crate::client::handle_client;
 
 pub(crate) type Clients = Arc<Mutex<Vec<(usize, TcpStream)>>>;
 
-pub fn main() {
+pub fn run() {
     let listener = match TcpListener::bind("127.0.0.1:8080") {
         Ok(listener) => listener,
         Err(e) => {

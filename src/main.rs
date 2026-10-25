@@ -1,6 +1,7 @@
 mod server;
 mod client;
 
-fn main() {
+pub fn main() {
     server::run();
 }
+ 

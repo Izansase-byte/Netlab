@@ -8,8 +8,7 @@ pub(crate) fn handle_client(
     id: usize,
     mut stream: &TcpStream,
     clients: &Clients,
-    io::result<()> {
-        fn handle_client(id: usize, mut stream: &TcpStream, clients: &Clients) -> io::Result<()> {
+) -> io::Result<()> {
     stream.set_write_timeout(Some(Duration::from_secs(2)))?;
     let mut reader = BufReader::new(stream);
 
@@ -74,5 +73,4 @@ pub(crate) fn handle_client(
     }
 }
 
-    }
-)
+    

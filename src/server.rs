@@ -4,6 +4,9 @@ use std::net::{Shutdown, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tokio::net::TcpListener;
+use tokio_rustls::rustls::ServerConfig;
+use tokio_rustls::TlsAcceptor;
+
 
 use crate::client::handle_client;
 
@@ -39,7 +42,8 @@ pub(crate) fn broadcast(clients: &Clients, sender_id: usize, message: &str) -> i
     Ok(())
 }
 
-pub async fn run() {
+pub async fn run(tls_config: Arc<ServerConfig>) {
+    let acceptor = TlsAcceptor::from(tls_config);
     let listener = match TcpListener::bind("0.0.0.0:8080").await {
         Ok(listener) => listener,
         Err(e) => {

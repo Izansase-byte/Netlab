@@ -1,6 +1,9 @@
 use std::io::{self, BufRead, BufReader, Write};
 use std::net::TcpStream;
 use std::time::Duration;
+use tokio::io::{AsyncWrite,AsyncWriteExt};
+use tokio::sync::mpsc;
+
 
 use crate::commands::{self, Commands};
 use crate::server::{Client, Clients, broadcast};
@@ -104,4 +107,20 @@ pub(crate) fn handle_client(
             Err(e) => return Err(e),
         }
     }
+}
+
+async fn send_messages<w>(
+    mut writer: w,
+    mut messages: mpsc::Receiver<String>,
+) -> io::Result<()>
+where
+    w: AsyncWrite + Unpin,
+{
+    while let Some(message) = messages.recv().await {
+        writer.write_all(message.as_bytes()).await?;
+        writer.flush().await?;
+    }
+
+    writer.shutdown().await?;
+    Ok(())
 }

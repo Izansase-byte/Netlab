@@ -6,6 +6,7 @@ use std::thread;
 use tokio::net::TcpListener;
 use tokio_rustls::rustls::ServerConfig;
 use tokio_rustls::TlsAcceptor;
+use tokio::sync::mpsc;
 
 
 use crate::client::handle_client;
@@ -13,34 +14,33 @@ use crate::client::handle_client;
 pub(crate) struct Client {
     pub(crate) id: usize,
     pub(crate) name: String,
-    pub(crate) stream: TcpStream,
+    pub(crate) sender: mpsc::UnboundedSender<String>,
 }
 
 pub(crate) type Clients = Arc<Mutex<Vec<Client>>>;
 
-pub(crate) fn broadcast(clients: &Clients, sender_id: usize, message: &str) -> io::Result<()> {
+pub(crate) fn broadcast(
+    clients: &Clients,
+    sender_id:usize,
+    message: &str,
+) -> io::Result<()> {
     let mut connected = clients.lock().map_err(|_| {
         io::Error::new(
             io::ErrorKind::Other,
-            "Lista de clientes bloqueada por un fallo",
+            "Lista de clientes bloqueada por un fallo"
         )
     })?;
 
-    connected.retain_mut(|client| {
+    connected.retain(|client|) {
         if client.id == sender_id {
             return true;
         }
-        match client.stream.write_all(message.as_bytes()) {
-            Ok(()) => true,
-            Err(e) => {
-                eprintln!("Error al enviar a {}: {}", client.name, e);
-                let _ = client.stream.shutdown(Shutdown::Both);
-                false
-            }
-        }
-    });
+        client.sender.send(message.to_string()).is_ok()
+    };
+
     Ok(())
-}
+
+    }
 
 pub async fn run(tls_config: Arc<ServerConfig>) {
     let acceptor = TlsAcceptor::from(tls_config);
@@ -80,23 +80,21 @@ pub async fn run(tls_config: Arc<ServerConfig>) {
 
         // Puente temporal: la atención al cliente todavía usa E/S bloqueante
         // en un hilo independiente. TLS sustituirá este paso.
-        let stream = match stream.into_std() {
-            Ok(stream) => stream,
-            Err(e) => {
-                eprintln!("Error al convertir la conexión: {}", e);
-                continue;
-            }
-        };
-
-        if let Err(e) = stream.set_nonblocking(false) {
-            eprintln!("Error al configurar la conexión: {}", e);
-            continue;
-        }
+        
 
         let clients = Arc::clone(&clients);
-        thread::spawn(move || {
+        let acceptor = acceptor.clone();
+
+        tokio::spawn(async move {
+            let stream = match acceptor.accept(stream).await {
+                Ok(stream) => stream,
+                Err(e) => {
+                    eprintln!("Error TLS con {}: {}", address, e);
+                    return;
+                }
+            };
             // La limpieza se ejecuta aunque falle el registro o la lectura.
-            if let Err(e) = handle_client(id, &stream, &clients) {
+            if let Err(e) = handle_client(id, stream, &clients) {
                 eprintln!("Error del cliente {}: {}", id, e);
             }
             let name = match clients.lock() {
@@ -113,7 +111,6 @@ pub async fn run(tls_config: Arc<ServerConfig>) {
                     None
                 }
             };
-            let _ = stream.shutdown(Shutdown::Both);
 
             if let Some(name) = name {
                 let notice = format!("{} se ha desconectado del chat.\n", name);

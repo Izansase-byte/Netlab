@@ -1,24 +1,29 @@
-use std::io::{self, BufRead, BufReader, Write};
-use std::net::TcpStream;
-use std::time::Duration;
-use tokio::io::{AsyncWrite,AsyncWriteExt};
+use:std::io;
+use tokio::io::{
+    AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader
+};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc;
+use tokio_rustls::server::TlsStream;
 
 
 use crate::commands::{self, Commands};
 use crate::server::{Client, Clients, broadcast};
 
-pub(crate) fn handle_client(
+pub(crate) async fn handle_client(
     id: usize,
-    mut stream: &TcpStream,
+    stream: TlsStream<TcpStream>,
     clients: &Clients,
 ) -> io::Result<()> {
-    stream.set_write_timeout(Some(Duration::from_secs(2)))?;
-    let mut reader = BufReader::new(stream);
+    let(reader, mut writer) = tokio::io::split(stream);
+    let mut reader = BufReader::new(reader);
 
-    stream.write_all(b"Introduce tu nombre: \n")?;
+    stream.write_all(b"Introduce tu nombre: \n").await?;
+    writer.flush().await?;
+
     let mut name = String::new();
-    if reader.read_line(&mut name)? == 0 {
+
+    if reader.read_line(&mut name).await? == 0 {
         return Ok(());
     }
 
@@ -30,7 +35,9 @@ pub(crate) fn handle_client(
     };
 
     // Solo los clientes que han elegido un nombre reciben mensajes del chat.
-    let writer = stream.try_clone()?;
+let (sender, receiver) = mpsc::unbounded_channel::<String>>();
+
+let registred = {
     let mut connected = clients.lock().map_err(|_| {
         io::Error::new(
             io::ErrorKind::Other,
@@ -42,23 +49,40 @@ pub(crate) fn handle_client(
         .iter()
         .any(|client| client.name.eq_ignore_ascii_case(&name))
     {
-        drop(connected);
-        stream.write_all(b"Nombre ya en uso. Desconectando...\n")?;
-        return Ok(());
+        false
+    } else {
+        connected.push(Client {
+            id,
+            name: name.clone()
+            sender: sender.clone()
+        });
+
+        true
     }
+};
 
-    connected.push(Client {
-        id,
-        name: name.clone(),
-        stream: writer,
-    });
-    drop(connected); // Liberar la lista antes de que broadcast vuelva a bloquearla.
+if !registred {
+    writer
+        .write_all(b"nombre ya en uso. Desconectando...\n")
+        .await?;
+    writer.flush().await?;
+    writer.shutdown().await?;
+    returon Ok(());
+}
 
-    stream.write_all(format!("Bienvenido, {}. Ya puedes escribir.\n", name).as_bytes())?;
+writer
+    .write_all(
+        format!("Bienvenido/a, {}. Ya puedes escribir.\n", name).as_bytes(),
+    )
+    .await()
+writer.flush().await?;
 
-    println!("Cliente {} identificado como {}", id, name);
-    let notice = format!("{} se ha unido al chat.\n", name);
-    broadcast(clients, id, &notice)?;
+let mut write_task = tokio::spawn(send_messages(writer, receiver));
+
+println!("Cliente {} identificado como {}", id, name);
+
+let notice = format!("{} se ha unido al chat.\n", name)
+broadcast(clients,id, &notice)?;
 
     let mut message = String::new();
     loop {
@@ -111,7 +135,7 @@ pub(crate) fn handle_client(
 
 async fn send_messages<w>(
     mut writer: w,
-    mut messages: mpsc::Receiver<String>,
+    mut messages: mpsc::UnboundedReceiver<String>,
 ) -> io::Result<()>
 where
     w: AsyncWrite + Unpin,

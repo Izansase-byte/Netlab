@@ -17,7 +17,7 @@ pub fn run() {
 
     let clients: Clients = Arc::new(Mutex::new(Vec::new()));
     println!("Servidor de chat iniciado en 127.0.0.1:8080");
-    println!("Versión: 0.5.0");
+    println!("Versión: {}", env!("CARGO_PKG_VERSION"));
 
     for (id, connection) in listener.incoming().enumerate() {
         let stream = match connection {

@@ -1,8 +1,7 @@
-mod server;
 mod client;
 mod commands;
+mod server;
 
-pub fn main() {
+fn main() {
     server::run();
 }
- 

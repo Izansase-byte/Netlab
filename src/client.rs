@@ -1,5 +1,5 @@
 use std::io::{self, BufRead, BufReader, Write};
-use std::net::{TcpStream,Shutdown};
+use std::net::{Shutdown, TcpStream};
 use std::time::Duration;
 
 use crate::server::Clients;
@@ -48,7 +48,7 @@ pub(crate) fn handle_client(
                 if text.is_empty() {
                     continue;
                 }
-                match commands::parse(text) {
+                match commands::parse_command(text) {
                     Commands::Quit => {
                         stream.write_all(b"Desconectando...\n")?;  
                         return Ok(());
@@ -58,9 +58,8 @@ pub(crate) fn handle_client(
                         stream.write_all(help_message.as_bytes())?;
                         continue;
                     }
-                    commands::Message => {}
+                    Commands::Message => {}
                     }
-                }
                 let outgoing = format!("{}: {}\n", name, text);
                 println!("{}", outgoing.trim_end());
 
@@ -87,5 +86,4 @@ pub(crate) fn handle_client(
             Err(e) => return Err(e),
         }
     }
-
-    
+}

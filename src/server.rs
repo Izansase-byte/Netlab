@@ -2,7 +2,7 @@ use std::io;
 use std::net::UdpSocket;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use tokio_rustls::TlsAcceptor;
 use tokio_rustls::rustls::ServerConfig;
 
@@ -12,6 +12,7 @@ pub(crate) struct Client {
     pub(crate) id: usize,
     pub(crate) name: String,
     pub(crate) sender: mpsc::UnboundedSender<String>,
+    pub(crate) kick: Option<oneshot::Sender<()>>,
 }
 
 pub(crate) type Clients = Arc<Mutex<Vec<Client>>>;
@@ -132,11 +133,13 @@ mod tests {
                 id: 1,
                 name: "Izan".into(),
                 sender: sender_a,
+                kick: None,
             },
             Client {
                 id: 2,
                 name: "Ana".into(),
                 sender: sender_b,
+                kick: None,
             },
         ]));
 

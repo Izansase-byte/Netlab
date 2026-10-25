@@ -3,7 +3,7 @@ use chrono::Local;
 
 use tokio::io::{AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use tokio::time::{Duration, timeout};
 use tokio_rustls::server::TlsStream;
 
@@ -34,6 +34,7 @@ pub(crate) async fn handle_client(
     };
 
     let (sender, receiver) = mpsc::unbounded_channel::<String>();
+    let (kick_sender, mut kick_receiver) = oneshot::channel::<()>();
 
     // El bloqueo termina antes de cualquier operación asíncrona.
     let registered = {
@@ -144,6 +145,10 @@ pub(crate) async fn handle_client(
                 Ok(result) => result,
                 Err(e) => Err(io::Error::new(io::ErrorKind::Other, e)),
             }
+        }
+        result = _ = mut kick_receiver => {
+            send("Has sido expulsado por el servidor.\n".to_string())?;
+            Ok(())
         }
     }
 }

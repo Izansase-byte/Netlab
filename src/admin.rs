@@ -54,6 +54,53 @@ pub(crate) fn start(clients: Clients) {
                         }
                     }
                 }
+
+                text if text == "/kick" || text.starts_with("/Kick") = {
+                    let id = match text
+                        .strip_prefix("/kick")
+                        .unwrap()
+                        .trim()
+                        .parse::<usize>()
+                    {
+                        Ok(id) => id,
+                        Err(_) => {
+                            println!("Uso: /kick ID")
+                            continue;
+                        }
+                    };
+                    
+                    let signal = {
+                        let mut connected = match clients.lock() {
+                            Ok(connected) => connected,
+                            Err(e) => {
+                                eprintln!("Error al consultar usuarios: {}", e);
+                                continue;
+                            }
+                        };
+                    }
+                        match connected.iter_mut().find()|client| client.id == id) {
+                            Some(client) => client.kick.take(),
+                            None => {
+                                println!("No existe un usuario con el ID {}", id);
+                                continue;
+                            }
+                    }
+                };
+
+                match signal {
+                    Some(signal) => {
+                        if signal.send(()).is_ok() {
+                            println!("Expulsion solicitada para el ID {}", id );
+                        } else {
+                            println!("La expulsion de ese usuario ya estaba solicitada.")
+                    }
+                    }}
+
+
+                None => {
+                    println!("No existe un usuario con ID{}", id)
+                    continue;
+
                 "" => {}
                 _ => println!("Comando desconocido. Usa /users o /say mensaje."),
             }

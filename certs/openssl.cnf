@@ -1,0 +1,13 @@
+[req]
+prompt = no
+distinguished_name = identity
+x509-extensions = extensions
+
+[identity]
+CN = netlab.local
+
+[extensions]
+subjectAltName = DNS:netlab.local,DNS:localhost,IP:127.0.0.1
+basicConstraints = critical,CA:FALSE
+keyUsage = critical,digitalSignature,keyEncipherment
+extendedKeyUsage = serverAuth

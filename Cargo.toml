@@ -4,3 +4,6 @@ version = "0.5.2"
 edition = "2024"
 
 [dependencies]
+rustls-pemfile = "2.2.0"
+tokio = { version = "1.54.1", features = ["net", "io-std", "macros", "rt-multi-thread", "sync", "time"] }
+tokio-rustls = "0.26.6"

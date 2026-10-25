@@ -3,6 +3,9 @@ use std::net::{TcpStream,Shutdown};
 use std::time::Duration;
 
 use crate::server::Clients;
+use crate::commands::{self, Commands};
+
+
 
 pub(crate) fn handle_client(
     id: usize,
@@ -45,9 +48,18 @@ pub(crate) fn handle_client(
                 if text.is_empty() {
                     continue;
                 }
-                if text == "/quit" {
-                    stream.write_all(b"Desconectando...\n")?;
-                    return Ok(());
+                match commands::parse(text) {
+                    Commands::Quit => {
+                        stream.write_all(b"Desconectando...\n")?;  
+                        return Ok(());
+                    }
+                    Commands::Help => {
+                        let help_message = "Comandos disponibles:\n/quit - Salir del chat\n/help - Mostrar esta ayuda\n";
+                        stream.write_all(help_message.as_bytes())?;
+                        continue;
+                    }
+                    commands::Message => {}
+                    }
                 }
                 let outgoing = format!("{}: {}\n", name, text);
                 println!("{}", outgoing.trim_end());
@@ -75,6 +87,5 @@ pub(crate) fn handle_client(
             Err(e) => return Err(e),
         }
     }
-}
 
     

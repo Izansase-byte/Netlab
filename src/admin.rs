@@ -34,6 +34,29 @@ pub(crate) fn start(clients: Clients) {
                         }
                     }
                 }
+                text if text == /say || text.starts_with("/say") => {
+                    let message = text.strip_prefix("/say").unwrap().trim();
+
+                    if message.is_empty() {
+                        println!("Uso: /say mensaje");
+                        continue;
+                    }
+                    let notice = format!("[Servidor] {}\n", message)
+
+                    match clients.lock() {
+                        Ok(mut connected) => {
+                            connected.retain(|client| {
+                                client.sender.send(notice.clone()).is_ok()
+                            });
+                        }
+                        Err(e) => {
+                            eprintln!("Error al enviar el aviso: {}", e)
+                        }
+                    }
+                }
+
+
+
                 "" => {}
                 _ => println!("Comando desconocido.")
             }

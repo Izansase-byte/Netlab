@@ -18,8 +18,7 @@ async fn main() -> io::Result<()> {
         .unwrap_or_else(|| "127.0.0.1:8080".to_string());
 
     let mut cert_file = std::io::BufReader::new(File::open("certs/server-cert.pem")?);
-    let certificates = rustls_pemfile::certs(&mut cert_file)
-        .collect::<io::Result<Vec<_>>>()?;
+    let certificates = rustls_pemfile::certs(&mut cert_file).collect::<io::Result<Vec<_>>>()?;
 
     if certificates.is_empty() {
         return Err(io::Error::new(
@@ -47,16 +46,13 @@ async fn main() -> io::Result<()> {
     // La IP local puede cambiar; la identidad del certificado es netlab.local.
     let server_name = ServerName::try_from("netlab.local")
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
-    let stream = timeout(
-        Duration::from_secs(10),
-        connector.connect(server_name, tcp),
-    )
-    .await
-    .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "Tiempo de negociación TLS agotado"))??;
+    let stream = timeout(Duration::from_secs(10), connector.connect(server_name, tcp))
+        .await
+        .map_err(|_| {
+            io::Error::new(io::ErrorKind::TimedOut, "Tiempo de negociación TLS agotado")
+        })??;
 
-    println!("\x1b[32mConexión TLS verificada con {}\x1b[0m",
-    address,
-    );
+    println!("\x1b[32mConexión TLS verificada con {}\x1b[0m", address,);
 
     let (reader, mut writer) = tokio::io::split(stream);
     let mut server_messages = BufReader::new(reader).lines();

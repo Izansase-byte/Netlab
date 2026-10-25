@@ -2,7 +2,7 @@ pub(crate) enum Commands {
     Quit,
     Help,
     Message,
-    Users
+    Users,
 }
 
 pub(crate) fn parse_command(input: &str) -> Commands {

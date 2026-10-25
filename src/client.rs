@@ -1,9 +1,9 @@
 use std::io::{self, BufRead, BufReader, Write};
-use std::net::{Shutdown, TcpStream};
+use std::net::TcpStream;
 use std::time::Duration;
 
 use crate::commands::{self, Commands};
-use crate::server::{Client, Clients};
+use crate::server::{broadcast, Client, Clients};
 
 pub(crate) fn handle_client(
     id: usize,
@@ -61,19 +61,22 @@ pub(crate) fn handle_client(
                         return Ok(());
                     }
                     Commands::Help => {
-                        let help_message = "Comandos disponibles:\n/quit - Salir del chat\n/help - Mostrar esta ayuda\n /users - Listar usuarios conectados\n";
+                        let help_message = "Comandos disponibles:\n/quit - Salir del chat\n/help - Mostrar esta ayuda\n/users - Listar usuarios conectados\n";
                         stream.write_all(help_message.as_bytes())?;
                         continue;
                     }
                     Commands::Users => {
-                        let connected = clients.lock().map_err(|_| {
-                            io::Error::new(
-                                io::ErrorKind::Other,
-                                "Lista de clientes bloqueada por un fallo",
-                            )
-                        })?;
-                        let user_list: Vec<String> = connected.iter().map(|c| c.name.clone()).collect();
-                        let user_message = format!("Usuarios conectados: {}\n", user_list.join(", "));
+                        let user_message = {
+                            let connected = clients.lock().map_err(|_| {
+                                io::Error::new(
+                                    io::ErrorKind::Other,
+                                    "Lista de clientes bloqueada por un fallo",
+                                )
+                            })?;
+                            let user_list: Vec<&str> =
+                                connected.iter().map(|client| client.name.as_str()).collect();
+                            format!("Usuarios conectados: {}\n", user_list.join(", "))
+                        };
                         stream.write_all(user_message.as_bytes())?;
                         continue;
                     }
@@ -81,9 +84,10 @@ pub(crate) fn handle_client(
                 }
                 let outgoing = format!("{}: {}\n", name, text);
                 println!("{}", outgoing.trim_end());
+                broadcast(clients, id, &outgoing)?;
             }
             Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
             Err(e) => return Err(e),
-        } 
+        }
     }
 }

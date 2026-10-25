@@ -1,3 +1,4 @@
+use std::io::{self, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -12,35 +13,33 @@ pub(crate) struct Client {
 
 pub(crate) type Clients = Arc<Mutex<Vec<Client>>>;
 
-pub (crate) fn broadcast(
+pub(crate) fn broadcast(
     clients: &Clients,
     sender_id: usize,
     message: &str,
-) -> std::io::Result<()> {
-                    let mut connected = clients.lock().map_err(|_| {
-                    io::Error::new(
-                        io::ErrorKind::Other,
-                        "Lista de clientes bloqueada por un fallo",
-                    )
-                })?;
+) -> io::Result<()> {
+    let mut connected = clients.lock().map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::Other,
+            "Lista de clientes bloqueada por un fallo",
+        )
+    })?;
 
-                // Cada mensaje completo se envía a todos excepto al remitente.
-                connected.retain_mut(|client| {
-                    if client.id == id {
-                        return true;
-                    }
-                    match client.stream.write_all(outgoing.as_bytes()) {
-                        Ok(()) => true,
-                        Err(e) => {
-                            eprintln!("Error al enviar a {}: {}", client.name, e);
-                            let _ = client.stream.shutdown(Shutdown::Both);
-                            false
-                        } 
-                    }
-                });
-            Ok(())
-        };
-    
+    connected.retain_mut(|client| {
+        if client.id == sender_id {
+            return true;
+        }
+        match client.stream.write_all(message.as_bytes()) {
+            Ok(()) => true,
+            Err(e) => {
+                eprintln!("Error al enviar a {}: {}", client.name, e);
+                let _ = client.stream.shutdown(Shutdown::Both);
+                false
+            }
+        }
+    });
+    Ok(())
+}
 
 pub fn run() {
     let listener = match TcpListener::bind("127.0.0.1:8080") {
@@ -53,7 +52,7 @@ pub fn run() {
 
     let clients: Clients = Arc::new(Mutex::new(Vec::new()));
     println!("Servidor de chat iniciado en 127.0.0.1:8080");
-    println!("Versión: {}c", env!("CARGO_PKG_VERSION"));
+    println!("Versión: {}", env!("CARGO_PKG_VERSION"));
 
     for (id, connection) in listener.incoming().enumerate() {
         let stream = match connection {

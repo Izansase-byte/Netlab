@@ -1,8 +1,9 @@
 use std::io::{self, Write};
 use std::net::UdpSocket;
-use std::net::{Shutdown, TcpListener, TcpStream};
+use std::net::{Shutdown, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
+use tokio::net::TcpListener:
 
 use crate::client::handle_client;
 
@@ -38,8 +39,8 @@ pub(crate) fn broadcast(clients: &Clients, sender_id: usize, message: &str) -> i
     Ok(())
 }
 
-pub fn run() {
-    let listener = match TcpListener::bind("0.0.0.0:8080") {
+pub async fn run() {
+    let listener = match TcpListener::bind("0.0.0.0:8080").await {
         Ok(listener) => listener,
         Err(e) => {
             eprintln!("Error al enlazar el puerto: {}", e);
@@ -60,9 +61,18 @@ pub fn run() {
     println!("Versión: {}", env!("CARGO_PKG_VERSION"));
     for (id, connection) in listener.incoming().enumerate() {
         let stream = match connection {
-            Ok(stream) => stream,
-            Err(e) => {
-                eprintln!("Error al aceptar la conexión: {}", e);
+            eprintln!("Conexion desde {}",address)
+
+            let stream = match stream.into_std() {
+                Ok(stream) => stream,
+                Err(e) => {
+                    eprintln!("Error al converir la conexion: {}", e);
+                    continue;
+                }
+            };
+
+            if let Err(e) = stream.set_nonblocking(false) {
+                eprintln!("Error al configurar la conexion: {}", e):
                 continue;
             }
         };

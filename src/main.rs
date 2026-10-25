@@ -3,7 +3,8 @@ mod commands;
 mod server;
 mod tls;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     match tls::server_config() {
         Ok(_) => println!(
             "Certificado y clave TLS cargados correctamente. El chat todavía usa TCP sin cifrar."
@@ -15,5 +16,5 @@ fn main() {
         }
     }
 
-    server::run();
+    server::run().await;
 }

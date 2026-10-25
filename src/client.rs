@@ -61,39 +61,29 @@ pub(crate) fn handle_client(
                         return Ok(());
                     }
                     Commands::Help => {
-                        let help_message = "Comandos disponibles:\n/quit - Salir del chat\n/help - Mostrar esta ayuda\n";
+                        let help_message = "Comandos disponibles:\n/quit - Salir del chat\n/help - Mostrar esta ayuda\n /users - Listar usuarios conectados\n";
                         stream.write_all(help_message.as_bytes())?;
+                        continue;
+                    }
+                    Commands::Users => {
+                        let connected = clients.lock().map_err(|_| {
+                            io::Error::new(
+                                io::ErrorKind::Other,
+                                "Lista de clientes bloqueada por un fallo",
+                            )
+                        })?;
+                        let user_list: Vec<String> = connected.iter().map(|c| c.name.clone()).collect();
+                        let user_message = format!("Usuarios conectados: {}\n", user_list.join(", "));
+                        stream.write_all(user_message.as_bytes())?;
                         continue;
                     }
                     Commands::Message => {}
                 }
                 let outgoing = format!("{}: {}\n", name, text);
                 println!("{}", outgoing.trim_end());
-
-                let mut connected = clients.lock().map_err(|_| {
-                    io::Error::new(
-                        io::ErrorKind::Other,
-                        "Lista de clientes bloqueada por un fallo",
-                    )
-                })?;
-
-                // Cada mensaje completo se envía a todos excepto al remitente.
-                connected.retain_mut(|client| {
-                    if client.id == id {
-                        return true;
-                    }
-                    match client.stream.write_all(outgoing.as_bytes()) {
-                        Ok(()) => true,
-                        Err(e) => {
-                            eprintln!("Error al enviar a {}: {}", client.name, e);
-                            let _ = client.stream.shutdown(Shutdown::Both);
-                            false
-                        }
-                    }
-                });
             }
             Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
             Err(e) => return Err(e),
-        }
+        } 
     }
 }

@@ -12,6 +12,36 @@ pub(crate) struct Client {
 
 pub(crate) type Clients = Arc<Mutex<Vec<Client>>>;
 
+pub (crate) fn broadcast(
+    clients: &Clients,
+    sender_id: usize,
+    message: &str,
+) -> std::io::Result<()> {
+                    let mut connected = clients.lock().map_err(|_| {
+                    io::Error::new(
+                        io::ErrorKind::Other,
+                        "Lista de clientes bloqueada por un fallo",
+                    )
+                })?;
+
+                // Cada mensaje completo se envía a todos excepto al remitente.
+                connected.retain_mut(|client| {
+                    if client.id == id {
+                        return true;
+                    }
+                    match client.stream.write_all(outgoing.as_bytes()) {
+                        Ok(()) => true,
+                        Err(e) => {
+                            eprintln!("Error al enviar a {}: {}", client.name, e);
+                            let _ = client.stream.shutdown(Shutdown::Both);
+                            false
+                        } 
+                    }
+                });
+            Ok(())
+        };
+    
+
 pub fn run() {
     let listener = match TcpListener::bind("127.0.0.1:8080") {
         Ok(listener) => listener,

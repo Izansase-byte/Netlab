@@ -53,6 +53,7 @@ pub async fn run(tls_config: Arc<ServerConfig>) {
     }
 
     let clients: Clients = Arc::new(Mutex::new(Vec::new()));
+    crate::admin::start(Arc::clone(&clients));
     let local_ip = (|| -> std::io::Result<std::net::IpAddr> {
         let socket = UdpSocket::bind("0.0.0.0:0")?;
         socket.connect("1.1.1.1:80")?;

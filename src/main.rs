@@ -2,6 +2,8 @@ mod client;
 mod commands;
 mod server;
 mod tls;
+mod admin;
+
 
 #[tokio::main]
 async fn main() {

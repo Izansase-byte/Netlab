@@ -55,6 +55,7 @@ pub(crate) async fn handle_client(
                 id,
                 name: name.clone(),
                 sender: sender.clone(),
+                kick: Some(kick_sender),
             });
             true
         }
@@ -146,8 +147,10 @@ pub(crate) async fn handle_client(
                 Err(e) => Err(io::Error::new(io::ErrorKind::Other, e)),
             }
         }
-        result = _ = mut kick_receiver => {
-            send("Has sido expulsado por el servidor.\n".to_string())?;
+        signal = &mut kick_receiver => {
+            if signal.is_ok() {
+                send("Has sido expulsado por el servidor.\n".to_string())?;
+            }
             Ok(())
         }
     }

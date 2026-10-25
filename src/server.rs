@@ -162,11 +162,13 @@ mod tests {
                 id: 2,
                 name: "Salido".into(),
                 sender: closed_sender,
+                kick: None,
             },
             Client {
                 id: 3,
                 name: "Ana".into(),
                 sender: active_sender,
+                kick: None,
             },
         ]));
 

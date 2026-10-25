@@ -9,7 +9,8 @@ pub(crate) fn start(clients: Clients) {
             "Consola del servidor.\n\
              Comandos:\n\
              /users - Mostrar IDs y nombres\n\
-             /say mensaje - Enviar un aviso a todos"
+             /say mensaje - Enviar un aviso a todos\n\
+             /kick ID - Expulsar a un usuario"
         );
 
         let stdin = io::stdin();
@@ -30,9 +31,7 @@ pub(crate) fn start(clients: Clients) {
                             println!("ID {} - {}", client.id, client.name);
                         }
                     }
-                    Err(e) => {
-                        eprintln!("Error al consultar usuarios: {}", e);
-                    }
+                    Err(e) => eprintln!("Error al consultar usuarios: {}", e),
                 },
                 text if text == "/say" || text.starts_with("/say ") => {
                     let message = text.strip_prefix("/say").unwrap().trim();
@@ -40,7 +39,6 @@ pub(crate) fn start(clients: Clients) {
                         println!("Uso: /say mensaje");
                         continue;
                     }
-
                     let notice = format!("[Servidor] {}\n", message);
                     match clients.lock() {
                         Ok(mut connected) => {
@@ -49,61 +47,87 @@ pub(crate) fn start(clients: Clients) {
                             });
                             println!("Aviso enviado a {} usuarios.", connected.len());
                         }
-                        Err(e) => {
-                            eprintln!("Error al enviar el aviso: {}", e);
-                        }
+                        Err(e) => eprintln!("Error al enviar el aviso: {}", e),
                     }
                 }
-
-                text if text == "/kick" || text.starts_with("/Kick") = {
-                    let id = match text
-                        .strip_prefix("/kick")
-                        .unwrap()
-                        .trim()
-                        .parse::<usize>()
-                    {
+                text if text == "/kick" || text.starts_with("/kick ") => {
+                    let id = match text.strip_prefix("/kick").unwrap().trim().parse::<usize>() {
                         Ok(id) => id,
                         Err(_) => {
-                            println!("Uso: /kick ID")
+                            println!("Uso: /kick ID");
                             continue;
                         }
                     };
-                    
-                    let signal = {
-                        let mut connected = match clients.lock() {
-                            Ok(connected) => connected,
-                            Err(e) => {
-                                eprintln!("Error al consultar usuarios: {}", e);
-                                continue;
-                            }
-                        };
+                    match kick_client(&clients, id) {
+                        Ok(status) => println!("ID {}: {}", id, status),
+                        Err(e) => eprintln!("Error al expulsar al usuario: {}", e),
                     }
-                        match connected.iter_mut().find()|client| client.id == id) {
-                            Some(client) => client.kick.take(),
-                            None => {
-                                println!("No existe un usuario con el ID {}", id);
-                                continue;
-                            }
-                    }
-                };
-
-                match signal {
-                    Some(signal) => {
-                        if signal.send(()).is_ok() {
-                            println!("Expulsion solicitada para el ID {}", id );
-                        } else {
-                            println!("La expulsion de ese usuario ya estaba solicitada.")
-                    }
-                    }}
-
-
-                None => {
-                    println!("No existe un usuario con ID{}", id)
-                    continue;
-
+                }
                 "" => {}
-                _ => println!("Comando desconocido. Usa /users o /say mensaje."),
+                _ => println!("Comando desconocido. Usa /users, /say mensaje o /kick ID."),
             }
         }
     });
+}
+
+// Solo la consola local llama a esta función.
+fn kick_client(clients: &Clients, id: usize) -> io::Result<&'static str> {
+    let signal = {
+        let mut connected = clients.lock().map_err(|_| {
+            io::Error::new(io::ErrorKind::Other, "No se pudo acceder a los clientes")
+        })?;
+        match connected.iter_mut().find(|client| client.id == id) {
+            Some(client) => client.kick.take(),
+            None => return Ok("No existe un usuario con ese ID."),
+        }
+    };
+
+    // La lista ya está desbloqueada cuando enviamos la señal.
+    match signal {
+        Some(signal) => match signal.send(()) {
+            Ok(()) => Ok("Expulsión solicitada."),
+            Err(_) => Ok("El usuario ya se ha desconectado."),
+        },
+        None => Ok("La expulsión ya estaba solicitada."),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::server::Client;
+    use std::sync::{Arc, Mutex};
+    use tokio::sync::{mpsc, oneshot};
+
+    #[test]
+    fn kick_only_signals_the_requested_user() {
+        let (messages_a, _receiver_a) = mpsc::unbounded_channel();
+        let (messages_b, _receiver_b) = mpsc::unbounded_channel();
+        let (kick_a, mut signal_a) = oneshot::channel();
+        let (kick_b, mut signal_b) = oneshot::channel();
+        let clients = Arc::new(Mutex::new(vec![
+            Client {
+                id: 1,
+                name: "Izan".into(),
+                sender: messages_a,
+                kick: Some(kick_a),
+            },
+            Client {
+                id: 2,
+                name: "Ana".into(),
+                sender: messages_b,
+                kick: Some(kick_b),
+            },
+        ]));
+
+        kick_client(&clients, 2).unwrap();
+
+        assert!(signal_b.try_recv().is_ok());
+        assert!(matches!(
+            signal_a.try_recv(),
+            Err(oneshot::error::TryRecvError::Empty)
+        ));
+        assert_eq!(clients.lock().unwrap().len(), 2);
+        assert!(clients.lock().unwrap()[1].kick.is_none());
+    }
 }

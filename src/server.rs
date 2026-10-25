@@ -1,0 +1,45 @@
+use std::net::{Shutdown, TcpListener, TcpStream};
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+use crate::client::handle_client;
+
+pub(crate) type Clients = Arc<Mutex<Vec<(usize, TcpStream)>>>;
+
+pub fn main() {
+    let listener = match TcpListener::bind("127.0.0.1:8080") {
+        Ok(listener) => listener,
+        Err(e) => {
+            eprintln!("Error al enlazar el puerto: {}", e);
+            return;
+        }
+    };
+
+    let clients: Clients = Arc::new(Mutex::new(Vec::new()));
+    println!("Servidor de chat iniciado en 127.0.0.1:8080");
+    println!("Versión: 0.5.0");
+
+    for (id, connection) in listener.incoming().enumerate() {
+        let stream = match connection {
+            Ok(stream) => stream,
+            Err(e) => {
+                eprintln!("Error al aceptar la conexión: {}", e);
+                continue;
+            }
+        };
+
+        let clients = Arc::clone(&clients);
+        thread::spawn(move || {
+            // La limpieza se ejecuta aunque falle el registro o la lectura.
+            if let Err(e) = handle_client(id, &stream, &clients) {
+                eprintln!("Error del cliente {}: {}", id, e);
+            }
+            match clients.lock() {
+                Ok(mut connected) => connected.retain(|(other_id, _)| *other_id != id),
+                Err(e) => eprintln!("Error al retirar al cliente {}: {}", id, e),
+            }
+            let _ = stream.shutdown(Shutdown::Both);
+            println!("Cliente {} desconectado", id);
+        });
+    }
+}

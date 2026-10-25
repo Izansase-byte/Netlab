@@ -1,3 +1,4 @@
+use std::net::UdpSocket;
 use std::io::{self, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
@@ -42,7 +43,7 @@ pub(crate) fn broadcast(
 }
 
 pub fn run() {
-    let listener = match TcpListener::bind("127.0.0.1:8080") {
+    let listener = match TcpListener::bind("0.0.0.0:8080") {
         Ok(listener) => listener,
         Err(e) => {
             eprintln!("Error al enlazar el puerto: {}", e);
@@ -51,9 +52,16 @@ pub fn run() {
     };
 
     let clients: Clients = Arc::new(Mutex::new(Vec::new()));
-    println!("Servidor de chat iniciado en 127.0.0.1:8080");
+    let local_ip = (|| -> std::io::Result<std::net::IpAddr> {
+        let socket = UdpSocket::bind("0.0.0.0:0")?;
+        socket.connect("1.1.1.1:80")?;
+        Ok(socket.local_addr()?.ip())
+    })();
+    match local_ip {
+        Ok(ip) => println!("IP local: {}", ip),
+        Err(e) => eprintln!("Error al obtener la IP local: {}", e),
+    }
     println!("Versión: {}", env!("CARGO_PKG_VERSION"));
-
     for (id, connection) in listener.incoming().enumerate() {
         let stream = match connection {
             Ok(stream) => stream,
@@ -90,4 +98,5 @@ pub fn run() {
                 }
             }
         });
-    }}
+    }
+}

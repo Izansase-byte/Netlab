@@ -3,7 +3,7 @@ use std::net::{Shutdown, TcpStream};
 use std::time::Duration;
 
 use crate::commands::{self, Commands};
-use crate::server::Clients;
+use crate::server::{Client, Clients};
 
 pub(crate) fn handle_client(
     id: usize,
@@ -38,7 +38,11 @@ pub(crate) fn handle_client(
                 "Lista de clientes bloqueada por un fallo",
             )
         })?
-        .push((id, writer));
+        .push(Client {
+            id,
+            name: name.clone(),
+            stream: writer,
+        });
     println!("Cliente {} identificado como {}", id, name);
 
     let mut message = String::new();
@@ -74,15 +78,15 @@ pub(crate) fn handle_client(
                 })?;
 
                 // Cada mensaje completo se envía a todos excepto al remitente.
-                connected.retain_mut(|(other_id, writer)| {
-                    if *other_id == id {
+                connected.retain_mut(|client| {
+                    if client.id == id {
                         return true;
                     }
-                    match writer.write_all(outgoing.as_bytes()) {
+                    match client.stream.write_all(outgoing.as_bytes()) {
                         Ok(()) => true,
                         Err(e) => {
-                            eprintln!("Error al enviar al cliente {}: {}", other_id, e);
-                            let _ = writer.shutdown(Shutdown::Both);
+                            eprintln!("Error al enviar a {}: {}", client.name, e);
+                            let _ = client.stream.shutdown(Shutdown::Both);
                             false
                         }
                     }

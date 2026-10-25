@@ -4,12 +4,14 @@ use std::thread;
 
 use crate::client::handle_client;
 
-
-pub (crate) struct Client {
+pub(crate) struct Client {
     pub(crate) id: usize,
     pub(crate) name: String,
     pub(crate) stream: TcpStream,
 }
+
+pub(crate) type Clients = Arc<Mutex<Vec<Client>>>;
+
 pub fn run() {
     let listener = match TcpListener::bind("127.0.0.1:8080") {
         Ok(listener) => listener,
@@ -19,9 +21,9 @@ pub fn run() {
         }
     };
 
-    let clients: Client = Arc::new(Mutex::new(Vec::new()));
+    let clients: Clients = Arc::new(Mutex::new(Vec::new()));
     println!("Servidor de chat iniciado en 127.0.0.1:8080");
-    println!("Versión: {}", env!("CARGO_PKG_VERSION"));
+    println!("Versión: {}c", env!("CARGO_PKG_VERSION"));
 
     for (id, connection) in listener.incoming().enumerate() {
         let stream = match connection {
@@ -32,14 +34,14 @@ pub fn run() {
             }
         };
 
-        let client = Arc::clone(&clients);
+        let clients = Arc::clone(&clients);
         thread::spawn(move || {
             // La limpieza se ejecuta aunque falle el registro o la lectura.
-            if let Err(e) = handle_client(id, &stream, &client) {
+            if let Err(e) = handle_client(id, &stream, &clients) {
                 eprintln!("Error del cliente {}: {}", id, e);
             }
-            match client.lock() {
-                Ok(mut connected) => connected.retain(|(other_id, _)| *other_id != id),
+            match clients.lock() {
+                Ok(mut connected) => connected.retain(|client| client.id != id),
                 Err(e) => eprintln!("Error al retirar al cliente {}: {}", id, e),
             }
             let _ = stream.shutdown(Shutdown::Both);

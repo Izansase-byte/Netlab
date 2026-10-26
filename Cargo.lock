@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "Netlab"
-version = "0.9.1-a"
+version = "1.0.1"
 dependencies = [
  "chrono",
  "rustls-pemfile",

@@ -11,13 +11,23 @@ use tokio_rustls::TlsConnector;
 use tokio_rustls::rustls::pki_types::ServerName;
 use tokio_rustls::rustls::{ClientConfig, RootCertStore};
 
+#[path = "../cert_paths.rs"]
+mod cert_paths;
+
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let address = std::env::args()
         .nth(1)
         .unwrap_or_else(|| "127.0.0.1:8080".to_string());
 
-    let mut cert_file = std::io::BufReader::new(File::open("certs/server-cert.pem")?);
+    let cert_path = cert_paths::certificate_dir()?.join("server-cert.pem");
+    let cert = File::open(&cert_path).map_err(|e| {
+        io::Error::new(
+            e.kind(),
+            format!("No se pudo abrir {}: {}", cert_path.display(), e),
+        )
+    })?;
+    let mut cert_file = std::io::BufReader::new(cert);
     let certificates = rustls_pemfile::certs(&mut cert_file).collect::<io::Result<Vec<_>>>()?;
 
     if certificates.is_empty() {

@@ -1,3 +1,4 @@
+mod cert_paths;
 mod admin;
 mod client;
 mod commands;

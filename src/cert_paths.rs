@@ -6,7 +6,10 @@ use std::path::PathBuf;
 pub(crate) fn certificate_dir() -> io::Result<PathBuf> {
     let executable = std::env::current_exe()?;
     let executable_dir = executable.parent().ok_or_else(|| {
-        io::Error::new(io::ErrorKind::NotFound, "No se pudo localizar el ejecutable")
+        io::Error::new(
+            io::ErrorKind::NotFound,
+            "No se pudo localizar el ejecutable",
+        )
     })?;
     let bundled = executable_dir.join("certs");
     if bundled.is_dir() {

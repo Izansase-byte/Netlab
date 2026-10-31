@@ -45,7 +45,42 @@ jobs:
             chmod +x 'package/Abrir Netlab.command'
           fi
           cp README.md package/
+          mkdir archives
+          if [ "${{ runner.os }}" = Windows ]; then
+            7z a "archives/Netlab-1.1.0-${{ matrix.platform }}.zip" ./package/*
+          else
+            tar -czf "archives/Netlab-1.1.0-${{ matrix.platform }}.tar.gz" -C package .
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: netlab-${{ matrix.platform }}
-          path: package/
+          path: archives/
+
+  publish:
+    needs: client
+    if: github.ref == 'refs/heads/feat/hosted-websocket-demo'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Publish v1.1.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cat > notes.md <<'NOTES'
+          Download the client for your system and extract it. No Rust, OpenSSL, certificate files, or server setup is required.
+
+          Windows x64: open "Abrir Netlab.bat".
+          Linux x64: run ./client in a terminal.
+          macOS: open "Abrir Netlab.command" (unsigned / not notarized).
+
+          The client connects automatically to wss://netlab.izansase-bot.hackclub.app using verified TLS. Enter a username and start chatting. This is a shared public demo; TLS terminates at the hosting proxy, so it is not end-to-end encryption.
+
+          Validation: formatting checks, unit tests and a real two-client WebSocket integration test run on each build platform. The hosted connection was also tested from an Apple Silicon Mac.
+          NOTES
+          gh release create v1.1.0 release/* --target "$GITHUB_SHA" --title "Netlab 1.1.0 — Hosted chat demo" --notes-file notes.md --latest

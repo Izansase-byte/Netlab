@@ -1,2 +1,4 @@
 /target
 certs/server-key.pem
+/dist
+.DS_Store

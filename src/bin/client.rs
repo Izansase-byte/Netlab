@@ -13,12 +13,18 @@ use tokio_rustls::rustls::{ClientConfig, RootCertStore};
 
 #[path = "../cert_paths.rs"]
 mod cert_paths;
+#[path = "../ws_client.rs"]
+mod ws_client;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let address = std::env::args()
         .nth(1)
-        .unwrap_or_else(|| "127.0.0.1:8080".to_string());
+        .unwrap_or_else(|| "wss://netlab.izansase-bot.hackclub.app".to_string());
+
+    if address.starts_with("ws://") || address.starts_with("wss://") {
+        return ws_client::run(&address).await;
+    }
 
     let cert_path = cert_paths::certificate_dir()?.join("server-cert.pem");
     let cert = File::open(&cert_path).map_err(|e| {

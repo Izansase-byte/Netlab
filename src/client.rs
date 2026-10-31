@@ -1,20 +1,18 @@
-use std::io;
 use chrono::Local;
+use std::io;
 
 use tokio::io::{AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader};
-use tokio::net::TcpStream;
+
 use tokio::sync::{mpsc, oneshot};
 use tokio::time::{Duration, timeout};
-use tokio_rustls::server::TlsStream;
 
 use crate::commands::{self, Commands};
 use crate::server::{Client, Clients, broadcast};
 
-pub(crate) async fn handle_client(
-    id: usize,
-    stream: TlsStream<TcpStream>,
-    clients: &Clients,
-) -> io::Result<()> {
+pub(crate) async fn handle_client<S>(id: usize, stream: S, clients: &Clients) -> io::Result<()>
+where
+    S: tokio::io::AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
     let (reader, mut writer) = tokio::io::split(stream);
     let mut reader = BufReader::new(reader);
 

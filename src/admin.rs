@@ -36,9 +36,7 @@ pub(crate) fn start(clients: Clients) {
                     let notice = format!("[Servidor] {}\n", message);
                     match clients.lock() {
                         Ok(mut connected) => {
-                            connected.retain(|client| {
-                                client.sender.send(notice.clone()).is_ok()
-                            });
+                            connected.retain(|client| client.sender.send(notice.clone()).is_ok());
                             println!("Aviso enviado a {} usuarios.", connected.len());
                         }
                         Err(e) => eprintln!("Error al enviar el aviso: {}", e),
@@ -57,9 +55,7 @@ pub(crate) fn start(clients: Clients) {
                         Err(e) => eprintln!("Error al expulsar al usuario: {}", e),
                     }
                 }
-                "/help" => {
-                    print_help()
-                }
+                "/help" => print_help(),
                 "" => {}
                 _ => println!("Comando desconocido. Usa /users, /say mensaje o /kick ID."),
             }
@@ -128,11 +124,12 @@ mod tests {
         assert!(clients.lock().unwrap()[1].kick.is_none());
     }
 }
-fn print_help(){
-            println!(
-                "Comandos:\n\
+fn print_help() {
+    println!(
+        "Comandos:\n\
                 /users - Mostrar IDs y nombres\n\
                 /say mensaje - Enviar un aviso a todos\n\
                 /kick ID - Expulsar a un usuario\n\
-                /help - Muestra esta lista\n")
-            }
+                /help - Muestra esta lista\n"
+    )
+}

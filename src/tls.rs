@@ -34,6 +34,9 @@ pub(crate) fn server_config() -> io::Result<Arc<ServerConfig>> {
 
 fn open_certificate(path: &std::path::Path) -> io::Result<File> {
     File::open(path).map_err(|e| {
-        io::Error::new(e.kind(), format!("No se pudo abrir {}: {}", path.display(), e))
+        io::Error::new(
+            e.kind(),
+            format!("No se pudo abrir {}: {}", path.display(), e),
+        )
     })
 }

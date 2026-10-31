@@ -2,6 +2,83 @@
 
 A terminal chat app built in Rust to learn about networks,async and encryption.
 
+
+## Hosted demo (1.1.0)
+
+Download the client for your platform, extract it, and open the launcher
+(`Abrir Netlab.command` on macOS or `Abrir Netlab.bat` on Windows). On Linux,
+run `./client` in a terminal. Enter a username, then start chatting.
+No Rust installation, certificate files, server setup, or address arguments
+are required for the hosted demo. macOS builds are not notarized.
+
+Default endpoint: `wss://netlab.izansase-bot.hackclub.app`.
+The client verifies the public HTTPS certificate using bundled trusted CA roots.
+Messages are encrypted between the client and the hosting reverse proxy;
+this is not end-to-end encryption. This is a shared public demo chat.
+
+### Hosting behind the Nest reverse proxy
+
+```bash
+cargo build --release --locked --bins
+./target/release/Netlab --websocket 0.0.0.0:8080
+```
+
+In the Nest dashboard, add `netlab.izansase-bot.hackclub.app` under Domains
+with target port `8080`. The proxy handles public HTTPS/WSS; the WebSocket
+backend runs on the private container network. Do not expose this unencrypted
+backend directly on a public network. No PEM files are used in this mode.
+
+For a local development test:
+
+```bash
+./target/release/Netlab --websocket 127.0.0.1:8080
+./target/release/client ws://127.0.0.1:8080
+```
+
+An alternative hosted server can be supplied as `./client wss://your-domain`.
+For the original direct TLS mode, supply `host:port` and follow the certificate
+instructions below. Existing 1.0.x clients cannot connect to the WSS endpoint.
+
+### Service example (Nest container, root session)
+
+Keep the previous server directory as a backup. Adapt paths if needed:
+
+```ini
+[Unit]
+Description=Netlab WebSocket chat
+After=network.target
+
+[Service]
+WorkingDirectory=/Netlab-websocket
+ExecStart=/Netlab-websocket/target/release/Netlab --websocket 0.0.0.0:8080
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+DynamicUser=true
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Save as `/etc/systemd/system/netlab-websocket.service`, then run
+`systemctl daemon-reload` and `systemctl enable --now netlab-websocket`.
+Stop the previous process using port 8080 before starting this service.
+Use `journalctl -u netlab-websocket -n 50` to inspect errors.
+
+### Validation
+
+`cargo test` includes a real WebSocket integration test with two users,
+messages, duplicate names, commands, disconnection and username reuse.
+The client-build workflow produces packages for macOS (Apple Silicon/Intel),
+Windows x64, and Linux x64. A successful build is not a manual test on every OS.
+
+---
+
+The following sections describe the original direct TLS mode.
+
 ## Language
 
 Actually it's only avaible in spanish but I want to make options to change language or another branch in english at least.

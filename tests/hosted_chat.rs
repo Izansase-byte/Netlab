@@ -58,6 +58,37 @@ async fn hosted_chat_registration_messages_commands_and_disconnect() {
     })
     .await
     .unwrap();
+    // HTTP probes must succeed without disrupting an existing WebSocket.
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    for (method, path, expected) in [
+        ("HEAD", "/", "200 OK"),
+        ("GET", "/health", "200 OK"),
+        ("GET", "/missing", "404 Not Found"),
+    ] {
+        let mut probe = tokio::net::TcpStream::connect(address).await.unwrap();
+        // Split the header to exercise TCP fragmentation.
+        probe
+            .write_all(format!("{method} {path} HTTP/1.1\r\n").as_bytes())
+            .await
+            .unwrap();
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        probe.write_all(b"Host: localhost\r\n\r\n").await.unwrap();
+        let mut response = String::new();
+        timeout(Duration::from_secs(5), probe.read_to_string(&mut response))
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(response.starts_with(&format!("HTTP/1.1 {expected}\r\n")));
+        let (_, body) = response.split_once("\r\n\r\n").unwrap();
+        assert_eq!(
+            body,
+            if method == "GET" && path == "/health" {
+                "Netlab OK\n"
+            } else {
+                ""
+            }
+        );
+    }
     until(&mut alice, "Introduce tu nombre").await;
     send(&mut alice, "Alice").await;
     until(&mut alice, "Bienvenido/a, Alice").await;

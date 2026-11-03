@@ -28,6 +28,11 @@ with target port `8080`. The proxy handles public HTTPS/WSS; the WebSocket
 backend runs on the private container network. Do not expose this unencrypted
 backend directly on a public network. No PEM files are used in this mode.
 
+The same port responds to `GET /`, `HEAD /`, and `/health` with `200 OK`
+for HTTP availability checks. WebSocket upgrades continue to use the chat.
+After deployment, verify both `curl -I https://netlab.izansase-bot.hackclub.app`
+and a real client connection.
+
 For a local development test:
 
 ```bash
